@@ -1,0 +1,16 @@
+timestamp,pressure,temperature,flow,leakage,reason
+2026-10-27 05:13:38,7.39,49.9,195.9,Normal,
+2026-10-27 05:13:39,7.32,47.3,199.8,Normal,
+2026-10-27 05:13:39,7.3,47.8,196.2,Normal,
+2026-10-27 05:13:39,6.93,48.8,186.7,Normal,
+2026-10-27 05:13:39,5.21,63.8,294.2,Possible Leakage,Pressure low: 5.21 bar (< 6.2); Sudden pressure drop: 6.93 -> 5.21 bar; Flow high: 294.2 L/min (> 240); Temperature high: 63.8 C (> 55)
+2026-10-27 05:13:39,6.83,35.1,210.4,Normal,
+2026-10-27 05:13:40,7.2,48.4,180.1,Normal,
+2026-10-27 05:13:40,7.22,44.5,201.6,Normal,
+2026-10-27 05:13:40,7.22,43.5,219.4,Normal,
+2026-10-27 05:13:40,5.87,57.7,275.6,Possible Leakage,Pressure low: 5.87 bar (< 6.2); Sudden pressure drop: 7.22 -> 5.87 bar; Flow high: 275.6 L/min (> 240); Temperature high: 57.7 C (> 55)
+2026-10-27 05:13:40,6.91,38.9,187.3,Normal,
+2026-10-27 05:13:41,7.27,48.7,212.5,Normal,
+2026-10-27 05:13:41,6.85,47.7,200.3,Normal,
+2026-10-27 05:13:41,7.21,39.2,189.8,Normal,
+2026-10-27 05:13:41,5.79,62.5,292.4,Possible Leakage,Pressure low: 5.79 bar (< 6.2); Sudden pressure drop: 7.21 -> 5.79 bar; Flow high: 292.4 L/min (> 240); Temperature high: 62.5 C (> 55)
