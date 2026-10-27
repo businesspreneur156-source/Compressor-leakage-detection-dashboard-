@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="hi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Compressor Monitoring Dashboard - Mobile Demo</title>
+<style>
+  *{box-sizing:border-box} body{font-family:system-ui,Arial,sans-serif;margin:0;background:#0f172a;color:#e2e8f0;padding:14px}
+  h1{font-size:20px;margin:4px 0} p.note{color:#94a3b8;font-size:13px;line-height:1.5}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}
+  .card{background:#1e293b;border-radius:12px;padding:12px}.card small{color:#94a3b8}.card b{font-size:22px;display:block;margin-top:4px}
+  #status{border-radius:12px;padding:14px;font-weight:700;text-align:center;margin:12px 0}
+  .normal{background:#14532d}.warning{background:#92400e}.leak{background:#991b1b}
+  button{width:100%;padding:12px;border:0;border-radius:10px;font-size:16px;margin:4px 0;background:#2563eb;color:#fff}
+  button.secondary{background:#334155} canvas{width:100%;height:130px;background:#1e293b;border-radius:12px;margin:6px 0}
+  table{width:100%;font-size:12px;border-collapse:collapse} th,td{padding:6px;border-bottom:1px solid #334155;text-align:left}
+  h2{font-size:16px;margin:18px 0 4px}
+</style>
+</head>
+<body>
+<h1>Compressor Monitoring Dashboard</h1>
+<p class="note">Mobile demo version — koi app install nahi, koi login nahi. Logic wahi hai jo Streamlit wale project me hai. Har 5th reading me leak aata hai, taaki status badalta dikhe. (Ye simulation hai — HiveMQ live connection isme nahi hai, kyunki browser me password daalna safe nahi hota.)</p>
+
+<div class="grid">
+  <div class="card"><small>Pressure</small><b id="p">—</b></div>
+  <div class="card"><small>Temperature</small><b id="t">—</b></div>
+  <div class="card"><small>Airflow</small><b id="f">—</b></div>
+  <div class="card"><small>Leakage Status</small><b id="s">—</b></div>
+</div>
+<div id="status" class="normal">Data ka wait ho raha hai...</div>
+<p id="reason" class="note"></p>
+
+<button id="toggle" onclick="toggle()">⏸ Pause</button>
+<button class="secondary" onclick="forceLeak()">⚠️ Agli reading me Leak dikhao</button>
+<button class="secondary" onclick="resetData()">↺ Reset</button>
+
+<h2>Pressure (bar)</h2><canvas id="cp" width="600" height="260"></canvas>
+<h2>Temperature (°C)</h2><canvas id="ct" width="600" height="260"></canvas>
+<h2>Airflow (L/min)</h2><canvas id="cf" width="600" height="260"></canvas>
+
+<h2>Recent readings</h2>
+<table><thead><tr><th>Time</th><th>Press.</th><th>Temp</th><th>Flow</th><th>Status</th></tr></thead><tbody id="rows"></tbody></table>
+<p class="note">Logic: Pressure &lt; 6.2 = +2, sudden drop &gt; 0.8 = +2, Flow &gt; 240 = +1, Temp &gt; 55 = +1. Score 3+ = Possible Leakage, 2 = Warning, 0–1 = Normal. Normal: 6.8–7.5 bar, 35–50 °C, 180–220 L/min.</p>
+
+<script>
+let readings=[], prev=null, count=0, nextLeak=false, timer=null, running=true;
+const rnd=(a,b)=>+(a+Math.random()*(b-a)).toFixed(a<10&&b<10?2:1);
+function detect(p,t,f,prevP){
+  let score=0, reasons=[];
+  if(p<6.2){score+=2; reasons.push("Pressure low: "+p+" bar (< 6.2)");}
+  if(prevP!==null && (prevP-p)>0.8){score+=2; reasons.push("Sudden drop: "+prevP+" → "+p+" bar");}
+  if(f>240){score+=1; reasons.push("Flow high: "+f+" L/min (> 240)");}
+  if(t>55){score+=1; reasons.push("Temp high: "+t+" °C (> 55)");}
+  if(score>=3) return ["Possible Leakage", reasons];
+  if(score===2) return ["Warning", reasons];
+  return ["Normal", reasons];
+}
+function gen(){
+  const leak = nextLeak || (count%5===4); nextLeak=false;
+  let p,t,f;
+  if(leak){ p=rnd(5.0,6.0); t=rnd(55,65); f=rnd(250,300); }
+  else { p=rnd(6.8,7.5); t=rnd(35,50); f=rnd(180,220); }
+  const [status,reasons]=detect(p,t,f,prev); prev=p; count++;
+  const r={time:new Date().toLocaleTimeString(), pressure:p, temperature:t, flow:f, leakage:status, reason:reasons.join("; ")};
+  readings.push(r); readings=readings.slice(-50); render();
+}
+function draw(id, key, min, max, color){
+  const c=document.getElementById(id), ctx=c.getContext("2d");
+  ctx.clearRect(0,0,c.width,c.height); ctx.strokeStyle=color; ctx.lineWidth=3; ctx.beginPath();
+  readings.forEach((r,i)=>{
+    const x=10+i*(580/Math.max(49,readings.length-1));
+    const y=240-((r[key]-min)/(max-min))*220;
+    i===0?ctx.moveTo(x,y):ctx.lineTo(x,y);
+  }); ctx.stroke();
+}
+function render(){
+  const l=readings[readings.length-1]; if(!l) return;
+  document.getElementById("p").textContent=l.pressure+" bar";
+  document.getElementById("t").textContent=l.temperature+" °C";
+  document.getElementById("f").textContent=l.flow+" L/min";
+  document.getElementById("s").textContent=l.leakage;
+  const st=document.getElementById("status");
+  st.textContent = l.leakage==="Possible Leakage" ? "⚠️ Possible Leakage!" : l.leakage==="Warning" ? "⚠️ Warning — Check karo" : "✅ Normal — koi leakage nahi";
+  st.className = l.leakage==="Possible Leakage" ? "leak" : l.leakage==="Warning" ? "warning" : "normal";
+  document.getElementById("reason").textContent=l.reason||"";
+  draw("cp","pressure",4,8,"#38bdf8"); draw("ct","temperature",30,70,"#fb923c"); draw("cf","flow",150,320,"#4ade80");
+  document.getElementById("rows").innerHTML=readings.slice(-10).reverse().map(r=>
+    "<tr><td>"+r.time+"</td><td>"+r.pressure+"</td><td>"+r.temperature+"</td><td>"+r.flow+"</td><td>"+r.leakage+"</td></tr>").join("");
+}
+function toggle(){ running=!running; document.getElementById("toggle").textContent=running?"⏸ Pause":"▶ Start";
+  if(running){ timer=setInterval(gen,2000); } else { clearInterval(timer); } }
+function forceLeak(){ nextLeak=true; if(!running) gen(); }
+function resetData(){ readings=[]; prev=null; count=0; render(); }
+gen(); timer=setInterval(gen,2000);
+</script>
+</body>
+</html>
