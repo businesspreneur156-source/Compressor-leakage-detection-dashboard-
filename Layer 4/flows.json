@@ -1,0 +1,196 @@
+[
+  {
+    "id": "tab1",
+    "type": "tab",
+    "label": "Compressor Layer 4",
+    "disabled": false,
+    "info": "Layer 4 - Node-RED: HiveMQ se data lo, leakage detect karo, debug me dekho."
+  },
+  {
+    "id": "broker1",
+    "type": "mqtt-broker",
+    "name": "HiveMQ keenbee",
+    "broker": "YOUR_CLUSTER.s1.eu.hivemq.cloud",
+    "port": "8883",
+    "tls": "tls1",
+    "clientid": "compressor-nodered-vyom",
+    "usetls": true,
+    "protocolVersion": "4",
+    "keepalive": "60",
+    "cleansession": true,
+    "birthTopic": "",
+    "birthQos": "0",
+    "birthPayload": "",
+    "birthMsg": {},
+    "closeTopic": "",
+    "closeQos": "0",
+    "closePayload": "",
+    "closeMsg": {},
+    "willTopic": "",
+    "willQos": "0",
+    "willPayload": "",
+    "willMsg": {},
+    "userProps": "",
+    "sessionExpiry": ""
+  },
+  {
+    "id": "tls1",
+    "type": "tls-config",
+    "name": "HiveMQ TLS",
+    "cert": "",
+    "key": "",
+    "ca": "",
+    "certname": "",
+    "keyname": "",
+    "caname": "",
+    "servername": "",
+    "verifyservercert": true,
+    "alpnprotocol": ""
+  },
+  {
+    "id": "mqttin1",
+    "type": "mqtt in",
+    "z": "tab1",
+    "name": "HiveMQ sensor data",
+    "topic": "compressor/sensor",
+    "qos": "2",
+    "datatype": "json",
+    "broker": "broker1",
+    "nl": false,
+    "rap": true,
+    "rh": 0,
+    "inputs": 0,
+    "x": 180,
+    "y": 120,
+    "wires": [
+      [
+        "leakfn1"
+      ]
+    ]
+  },
+  {
+    "id": "inject1",
+    "type": "inject",
+    "z": "tab1",
+    "name": "Simulate (bina HiveMQ)",
+    "props": [
+      {
+        "p": "payload"
+      }
+    ],
+    "repeat": "2",
+    "crontab": "",
+    "once": false,
+    "onceDelay": 0.1,
+    "topic": "",
+    "payload": "",
+    "payloadType": "date",
+    "x": 180,
+    "y": 220,
+    "wires": [
+      [
+        "simfn1"
+      ]
+    ]
+  },
+  {
+    "id": "simfn1",
+    "type": "function",
+    "z": "tab1",
+    "name": "Simulated sensor data",
+    "func": "// Bina HiveMQ ke test: simulated reading banao (har 5th reading leak)\nlet count = flow.get('count') || 0;\nlet prev = flow.get('prev_pressure');\nlet leak = (count % 5 === 4);\nlet p = leak ? 5.0 + Math.random() * 1.0 : 6.8 + Math.random() * 0.7;\nlet t = leak ? 55 + Math.random() * 10 : 35 + Math.random() * 15;\nlet f = leak ? 250 + Math.random() * 50 : 180 + Math.random() * 40;\nflow.set('count', count + 1);\nmsg.payload = {\n  timestamp: new Date().toISOString(),\n  pressure: Math.round(p * 100) / 100,\n  temperature: Math.round(t * 10) / 10,\n  flow: Math.round(f * 10) / 10\n};\nreturn msg;\n",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 420,
+    "y": 220,
+    "wires": [
+      [
+        "leakfn1"
+      ]
+    ]
+  },
+  {
+    "id": "leakfn1",
+    "type": "function",
+    "z": "tab1",
+    "name": "Leakage Detection",
+    "func": "// Leakage logic - Python wale synthetic_data.py jaisi hi (score-based)\nlet p = msg.payload.pressure;\nlet t = msg.payload.temperature;\nlet f = msg.payload.flow;\nlet prev = flow.get('prev_pressure');\nlet score = 0, reasons = [];\nif (p < 6.2) { score += 2; reasons.push('Pressure low: ' + p + ' bar (< 6.2)'); }\nif (prev !== undefined && (prev - p) > 0.8) { score += 2; reasons.push('Sudden drop: ' + prev + ' -> ' + p + ' bar'); }\nif (f > 240) { score += 1; reasons.push('Flow high: ' + f + ' L/min (> 240)'); }\nif (t > 55) { score += 1; reasons.push('Temp high: ' + t + ' C (> 55)'); }\nflow.set('prev_pressure', p);\nmsg.payload.leakage = score >= 3 ? 'Possible Leakage' : score === 2 ? 'Warning' : 'Normal';\nmsg.payload.reason = reasons.join('; ');\nreturn msg;\n",
+    "outputs": 1,
+    "timeout": 0,
+    "noerr": 0,
+    "initialize": "",
+    "finalize": "",
+    "libs": [],
+    "x": 640,
+    "y": 160,
+    "wires": [
+      [
+        "debugall1",
+        "switch1"
+      ]
+    ]
+  },
+  {
+    "id": "debugall1",
+    "type": "debug",
+    "z": "tab1",
+    "name": "All readings",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "payload",
+    "targetType": "msg",
+    "statusVal": "",
+    "statusType": "auto",
+    "x": 880,
+    "y": 100,
+    "wires": []
+  },
+  {
+    "id": "switch1",
+    "type": "switch",
+    "z": "tab1",
+    "name": "Leak only?",
+    "property": "payload.leakage",
+    "propertyType": "msg",
+    "rules": [
+      {
+        "t": "eq",
+        "v": "Possible Leakage",
+        "vt": "str"
+      }
+    ],
+    "checkall": "true",
+    "repair": false,
+    "outputs": 1,
+    "x": 880,
+    "y": 220,
+    "wires": [
+      [
+        "debugleak1"
+      ]
+    ]
+  },
+  {
+    "id": "debugleak1",
+    "type": "debug",
+    "z": "tab1",
+    "name": "LEAK ALERT",
+    "active": true,
+    "tosidebar": true,
+    "console": false,
+    "tostatus": false,
+    "complete": "payload",
+    "targetType": "msg",
+    "statusVal": "",
+    "statusType": "auto",
+    "x": 1080,
+    "y": 220,
+    "wires": []
+  }
+]
