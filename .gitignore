@@ -1,0 +1,6 @@
+.env
+data/compressor.db
+data/compressor_data.csv
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
