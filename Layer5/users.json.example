@@ -1,0 +1,16 @@
+{
+  "users": [
+    {
+      "username": "admin",
+      "salt": "5562786cb19cc6e87f9241227cde8718",
+      "hash": "9f30d0b0f6bea96b3e78822b27fdbc1803fdd5a936d724574a724584a85fed52",
+      "role": "admin"
+    },
+    {
+      "username": "viewer",
+      "salt": "4c5126e2daa1225b65e59426ccac1229",
+      "hash": "66bc0131df342aaabb1e35d8f16435afed5fb2ba4a71e8f5f21934819acab44b",
+      "role": "viewer"
+    }
+  ]
+}
